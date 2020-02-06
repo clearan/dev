@@ -63,3 +63,31 @@ div:focus {
 .app-container {
   padding: 20px;
 }
+// .el-table, .el-table__expanded-cell {
+//  background-color: transparent;
+//}
+
+//改变鼠标移到tr上行的颜色
+.el-table__body tr:hover>td {
+  background-color:#e8f7f6 !important;
+}
+
+.link-type,
+.link-type:focus {
+  color: #337ab7;
+  cursor: pointer;
+
+  &:hover {
+    color: rgb(32, 160, 255);
+  }
+}
+
+.filter-container {
+  padding-bottom: 10px;
+
+  .filter-item {
+    display: inline-block;
+    vertical-align: middle;
+    margin-bottom: 10px;
+  }
+}

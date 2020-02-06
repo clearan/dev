@@ -1,85 +1,199 @@
 import axios from 'axios'
-import { MessageBox, Message } from 'element-ui'
-import store from '@/store'
-import { getToken } from '@/utils/auth'
+import Vue from 'vue'
+import { Message, MessageBox} from 'element-ui'
+import {LocalStorage} from '@/utils/storage'
 
-// create an axios instance
-const service = axios.create({
-  baseURL: process.env.VUE_APP_BASE_API, // url = base url + request url
-  // withCredentials: true, // send cookies when cross-domain requests
-  timeout: 5000 // request timeout
+
+//let baseURL = 'http://10.10.35.137:8082/cgi/';
+//将URL地址前面相同的一段封装
+const $http = axios.create({
+  //baseURL: baseURL
+  timeout: 10000
 })
 
-// request interceptor
-service.interceptors.request.use(
-  config => {
-    // do something before request is sent
+// $http.defaults.retry = 4;
+// $http.defaults.retryDelay = 1000;
 
-    if (store.getters.token) {
-      // let each request carry token
-      // ['X-Token'] is a custom headers key
-      // please modify it according to the actual situation
-      config.headers['X-Token'] = getToken()
-    }
-    return config
-  },
-  error => {
-    // do something with request error
-    console.log(error) // for debug
-    return Promise.reject(error)
-  }
-)
+$http.interceptors.request.use(function (config) {
 
-// response interceptor
-service.interceptors.response.use(
-  /**
-   * If you want to get http information such as headers or status
-   * Please return  response => response
-  */
+  const sess = LocalStorage.get('sess')
 
-  /**
-   * Determine the request status by custom code
-   * Here is just an example
-   * You can also judge the status by HTTP Status Code
-   */
-  response => {
-    const res = response.data
-
-    // if the custom code is not 20000, it is judged as an error.
-    if (res.code !== 20000) {
-      Message({
-        message: res.message || 'Error',
-        type: 'error',
-        duration: 5 * 1000
-      })
-
-      // 50008: Illegal token; 50012: Other clients logged in; 50014: Token expired;
-      if (res.code === 50008 || res.code === 50012 || res.code === 50014) {
-        // to re-login
-        MessageBox.confirm('You have been logged out, you can cancel to stay on this page, or log in again', 'Confirm logout', {
-          confirmButtonText: 'Re-Login',
-          cancelButtonText: 'Cancel',
-          type: 'warning'
-        }).then(() => {
-          store.dispatch('user/resetToken').then(() => {
-            location.reload()
-          })
-        })
+  if (sess === '' || sess === undefined || sess === null) {
+    // MessageBox.confirm('您的登录已失效，请重新登录', '温馨提示', {
+    //   confirmButtonText: '确定',
+    //   cancelButtonText: '取消',
+    //   type: 'warning',
+    //   closeOnClickModal:false,
+    //   closeOnPressEscape:false,
+    // }).then(() => {
+    //   window.location.href=process.env.VUE_APP_PUSH_URL+'#/login?redirect='+window.location.href.split('#')[1];
+    // })
+    var clearTime = 3
+    var time = setInterval(() => {
+      clearTime--
+      if (clearTime === 1) {
+        clearInterval(time)
       }
-      return Promise.reject(new Error(res.message || 'Error'))
-    } else {
-      return res
-    }
-  },
-  error => {
-    console.log('err' + error) // for debug
-    Message({
-      message: error.message,
-      type: 'error',
-      duration: 5 * 1000
-    })
-    return Promise.reject(error)
-  }
-)
+      a.message = '您的登录已过期，'+clearTime+'秒后跳转至登录页面'
+    }, 1000)
 
-export default service
+    var a = Message({
+      message:'您的登录已过期，3秒后跳转至登录页面',
+      type:'error',
+      center:true,
+      onClose:action=>{
+        window.location.href=process.env.VUE_APP_PUSH_URL+'#/login?redirect='+window.location.href.split('#')[1];
+      }
+    })
+  } else {
+
+    return config;
+  }
+
+}, function (error) {
+  return Promise.reject(error);
+});
+
+
+// 封装get
+export const get = (url, params) => {
+  params = params || {};
+  return new Promise((resolve, reject) => {
+    $http.get(url, {
+      params,
+    }).then(resp => {
+      if (resp.status === 200 && resp.data !== undefined && resp.data !== null) {
+        if (resp.data.ret_code === -50000 || resp.data.ret_code === -50001) {
+          MessageBox.confirm('您的登录已失效，请重新登录', '温馨提示', {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning',
+            closeOnClickModal:false,
+            closeOnPressEscape:false,
+          }).then(() => {
+            new Promise(resolve => {
+              localStorage.clear();
+              resolve()
+            }).then(() => {
+              window.location.href=process.env.VUE_APP_PUSH_URL+'#/login?redirect='+window.location.href.split('#')[1];
+            })
+          })
+
+        }else{
+          resolve(resp.data)
+        }
+
+      } else {
+        alert('网络繁忙')
+      }
+    }).catch(err => {
+      reject(err)
+    })
+  })
+}
+
+//封装post
+export const post = (url, params) => {
+  var self_id = LocalStorage.get("self_id");
+
+  do {
+    if (self_id === undefined || self_id === null) {
+        break;
+    }
+
+    if (window.self_id === undefined || window.self_id === null) {
+        window.self_id = self_id
+    } else {
+        if (window.self_id !== self_id) {
+            break;
+        }
+    }
+
+    params = params || {};
+    return new Promise((resolve, reject) => {
+      $http.post(url,
+        params
+      ).then(resp => {
+        if (resp.status === 200 && resp.data !== undefined && resp.data !== null) {
+          if (resp.data.ret_code === -50000 || resp.data.ret_code === -50001) {
+
+            // MessageBox.confirm('您的登录已失效，请重新登录', '温馨提示', {
+            //   confirmButtonText: '确定',
+            //   cancelButtonText: '取消',
+            //   type: 'warning',
+            //   closeOnClickModal:false,
+            //   closeOnPressEscape:false,
+            // }).then(() => {
+            //   new Promise(resolve => {
+            //     localStorage.clear();
+            //     resolve()
+            //   }).then(() => {
+            //     // window.location.href=process.env.VUE_APP_PUSH_URL;
+            //     window.location.href=process.env.VUE_APP_PUSH_URL+'#/login?redirect='+window.location.href.split('#')[1];
+            //   })
+            // })
+            var clearTime = 3
+            var time = setInterval(() => {
+              clearTime--
+              if (clearTime === 1) {
+                clearInterval(time)
+              }
+              a.message = '您的登录已过期，'+clearTime+'秒后跳转至登录页面'
+            }, 1000)
+
+            var a = Message({
+              message:'您的登录已过期，3秒后跳转至登录页面',
+              type:'error',
+              center:true,
+              onClose:action=>{
+                window.location.href=process.env.VUE_APP_PUSH_URL+'#/login?redirect='+window.location.href.split('#')[1];
+              }
+            })
+
+          }else{
+            resolve(resp.data)
+          }
+
+        } else {
+          alert('网络繁忙')
+        }
+      }).catch(err => {
+        // console.log(err.request)
+        // console.log(err.config)
+        // console.log(1111)
+        reject(err)
+      })
+    })
+  } while(0);
+
+  // MessageBox.confirm('您的登录已失效，请重新登录', '温馨提示', {
+  //   confirmButtonText: '确定',
+  //   cancelButtonText: '取消',
+  //   type: 'warning',
+  //   closeOnClickModal:false,
+  //   closeOnPressEscape:false,
+  // }).then(() => {
+  //   window.location.href=process.env.VUE_APP_PUSH_URL+'#/login?redirect='+window.location.href.split('#')[1];
+  // })
+  var clearTime = 3
+  var time = setInterval(() => {
+    clearTime--
+    if (clearTime === 1) {
+      clearInterval(time)
+    }
+    a.message = '您的登录已过期，'+clearTime+'秒后跳转至登录页面'
+  }, 1000)
+
+  var a = Message({
+    message:'您的登录已过期，3秒后跳转至登录页面',
+    type:'error',
+    center:true,
+    onClose:action=>{
+      window.location.href=process.env.VUE_APP_PUSH_URL+'#/login?redirect='+window.location.href.split('#')[1];
+    }
+  })
+
+  return Promise.reject("loginErr")
+}
+
+
