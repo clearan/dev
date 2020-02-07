@@ -466,7 +466,8 @@
                                 } else if (list[i]['receipt'] !== 0 && list[i]['receipt'] === list[i]['success'] ) {
                                     list[i]['rate'] = '100%'
                                 } else {
-                                    list[i]['rate'] = (list[i]['receipt']/list[i]['success']).toFixed(2).substr(2,2)+'%'
+                                    //list[i]['rate'] = (list[i]['receipt']/list[i]['success']).toFixed(2).substr(2,2)+'%'
+                                    list[i]['rate'] = (Math.round(list[i]['receipt'] / list[i]['success'] * 10000) / 100.00)+"%"
                                 }
                             }
 
