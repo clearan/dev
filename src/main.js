@@ -30,8 +30,8 @@ Vue.prototype.$http = {
   get,
   post
 }
-Vue.prototype.url = 'http://10.10.35.21:8082/cgi'
-Vue.prototype.url2 = 'http://10.10.35.21:8080/cgi'
+Vue.prototype.url = 'http://10.10.35.165:8082/cgi'
+Vue.prototype.url2 = 'http://10.10.35.165:8080/cgi'
 
 import {mockXHR} from '../mock'
 // if (process.env.NODE_ENV === 'production') {
